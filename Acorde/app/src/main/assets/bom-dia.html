@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acorde</title>
+<style>
+:root{--bg:#0b1020;--card:#151c33;--c2:#1d2645;--tx:#eef1ff;--mut:#9aa6d1;--ac:#ffb703;--ok:#3ddc97}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px system-ui,sans-serif;padding:0 14px 90px}
+h1{font-size:26px;margin:16px 0 2px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
+.sub{color:var(--mut);margin:0 0 12px}.warn{font-size:13px;color:var(--mut);line-height:1.45}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.big{font-size:56px;font-weight:700;line-height:1}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini{background:var(--c2);border-radius:12px;padding:10px;text-align:center;font-size:13px}.mini b{display:block;font-size:17px}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--c2);color:var(--tx)}
+button.p{background:var(--ac);color:#201500;font-weight:700}
+input[type=time],input[type=text]{font:inherit;background:var(--c2);color:var(--tx);border:0;border-radius:12px;padding:10px;width:100%}
+.res{background:#ffb70318;border-left:4px solid var(--ac);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:16px;line-height:1.35}
+.res.ok{background:#3ddc9718;border-color:var(--ok)}
+.news a{display:block;padding:10px 0;border-bottom:1px solid #fff1;color:var(--tx);line-height:1.3}
+.alarm{background:var(--c2);border-radius:14px;padding:12px;margin-bottom:8px}.alarm .t{font-size:32px;font-weight:700}
+.days{display:flex;gap:4px;margin-top:6px}.days span{flex:1;text-align:center;padding:6px 0;border-radius:8px;font-size:12px;background:#0003;color:var(--mut)}.days span.on{background:var(--ac);color:#201500;font-weight:700}
+.sw{width:52px;height:30px;border-radius:15px;background:#0006;position:relative;flex:none}.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}.sw.on{background:var(--ok)}.sw.on::after{left:25px}
+.chk{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #fff1}.chk.d span{text-decoration:line-through;opacity:.5}.chk input{width:22px;height:22px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#0e1530;padding:8px;gap:8px}nav button{flex:1;padding:14px}nav button.on{background:var(--ac);color:#201500;font-weight:700}
+.frm{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+</style></head><body>
+
+<section id="tab1">
+<h1 id="hi">Bom dia</h1><p class="sub" id="dt"></p>
+<div class="card"><h2>Pra saber antes de sair</h2><div id="res">Carregando…</div></div>
+<div class="card"><div id="wx"></div>
+ <div class="row" style="margin-top:12px"><input type="text" id="city" placeholder="Trocar cidade…"><button id="cb">Ir</button></div></div>
+<div class="card news"><h2>Brasil agora</h2><div id="n1">…</div></div>
+<div class="card news"><h2>Economia</h2><div id="n2">…</div></div>
+<div class="card news"><h2>Distrito Federal</h2><div id="n3">…</div></div>
+<div class="card"><h2>Mercado e sol</h2><div id="mk"></div></div>
+<div class="card"><h2>Checklist de hoje</h2><div id="cl"></div>
+ <div class="row" style="margin-top:10px"><input type="text" id="ci" placeholder="Adicionar (remédio, mochila, treino…)"><button class="p" id="ca">+</button></div></div>
+</section>
+
+<section id="tab2" style="display:none">
+<h1>Alarmes</h1><p class="sub">Tocam no volume máximo, mesmo com o celular bloqueado.</p>
+<div class="card"><div class="row"><h2>Seus alarmes</h2><button class="p" id="addA">+ Novo</button></div>
+ <div id="alarms"></div>
+ <div class="frm" id="form" style="display:none"><input type="time" id="fT" value="06:30"><input type="text" id="fL" placeholder="Nome (ex: Acordar!)"><div class="days" id="fD"></div><button class="p" id="save">Salvar alarme</button></div></div>
+<div class="card"><label class="row"><span>Conta de matemática pra desligar</span><div class="sw on" id="chal"></div></label>
+ <p class="warn">Ligado: não tem soneca, você precisa acordar o cérebro. Desligado: aparece o botão de soneca.</p>
+ <button id="test" style="width:100%">🔊 Testar alarme agora</button><p class="warn" id="nat"></p></div>
+</section>
+
+<nav><button id="b1" class="on">☀️ Bom dia</button><button id="b2">⏰ Alarmes</button></nav>
+
+<script>
+const $=id=>document.getElementById(id),DN=['D','S','T','Q','Q','S','S'],pad=n=>String(n).padStart(2,'0');
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+// ponte nativa (Android) com fallback pro navegador
+const cbs={};window.__r=(id,t)=>{if(cbs[id]){cbs[id](t);delete cbs[id]}};
+const get=u=>window.Android?new Promise(r=>{const id=Math.random()+'';cbs[id]=r;Android.get(id,u)}):fetch(u).then(r=>r.text()).catch(()=>'');
+const getJ=async u=>{try{return JSON.parse(await get(u))}catch(e){return null}};
+const openU=u=>window.Android?Android.open(u):window.open(u);
+
+let alarms=ld('alarms',[]),chal=ld('chal',true),pos=ld('pos',{lat:-15.79,lon:-47.88,n:'Brasília'}),cl=ld('cl',{d:'',i:[]});
+function sync(){sv('alarms',alarms);sv('chal',chal);if(window.Android)Android.setConfig(JSON.stringify({chal,alarms:alarms.map(a=>({t:a.t,l:a.l,d:a.d,on:a.on}))}))}
+
+// abas
+function tab(n){$('tab1').style.display=n==1?'block':'none';$('tab2').style.display=n==2?'block':'none';$('b1').className=n==1?'on':'';$('b2').className=n==2?'on':''}
+$('b1').onclick=()=>tab(1);$('b2').onclick=()=>tab(2);
+
+// alarmes
+let fd=[1,2,3,4,5];
+const drawF=()=>$('fD').innerHTML=DN.map((n,i)=>`<span data-i="${i}" class="${fd.includes(i)?'on':''}">${n}</span>`).join('');
+$('fD').onclick=e=>{const i=+e.target.dataset.i;if(isNaN(i))return;fd=fd.includes(i)?fd.filter(x=>x!==i):[...fd,i];drawF()};
+$('addA').onclick=()=>{$('form').style.display=$('form').style.display=='none'?'flex':'none';drawF()};
+$('save').onclick=()=>{alarms.push({id:Date.now(),t:$('fT').value||'06:30',l:$('fL').value||'Acordar!',d:[...fd],on:true});$('form').style.display='none';$('fL').value='';sync();drawA()};
+function drawA(){$('alarms').innerHTML=alarms.length?alarms.map(a=>`<div class="alarm"><div class="row"><div><div class="t">${a.t}</div><div style="color:var(--mut)">${a.l}</div></div><div class="row"><button data-x="${a.id}" style="padding:6px 10px">🗑</button><div class="sw ${a.on?'on':''}" data-s="${a.id}"></div></div></div><div class="days">${DN.map((n,i)=>`<span class="${a.d.includes(i)?'on':''}">${n}</span>`).join('')}</div></div>`).join(''):'<p class="warn">Nenhum alarme ainda. Toque em “+ Novo”.</p>'}
+$('alarms').onclick=e=>{const s=e.target.dataset.s,x=e.target.dataset.x;if(s){const a=alarms.find(a=>a.id==s);a.on=!a.on}if(x)alarms=alarms.filter(a=>a.id!=x);sync();drawA()};
+$('chal').className='sw '+(chal?'on':'');$('chal').onclick=()=>{chal=!chal;$('chal').className='sw '+(chal?'on':'');sync()};
+$('test').onclick=()=>window.Android?Android.test():alert('Só funciona dentro do app.');
+$('nat').textContent=window.Android?'':'Você está no navegador: alarmes só funcionam no app instalado.';
+
+// clima
+const WC=c=>c==0?['☀️','Céu limpo']:c<=2?['🌤️','Poucas nuvens']:c==3?['☁️','Nublado']:c<=48?['🌫️','Neblina']:c<=57?['🌦️','Garoa']:c<=67?['🌧️','Chuva']:c<=77?['❄️','Neve']:c<=82?['🌧️','Pancadas de chuva']:['⛈️','Tempestade'];
+let SUN={};
+async function weather(){
+ const j=await getJ(`https://api.open-meteo.com/v1/forecast?latitude=${pos.lat}&longitude=${pos.lon}&current=temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,wind_speed_10m&hourly=precipitation_probability,temperature_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=1`);
+ if(!j||!j.current){$('wx').innerHTML='<p class="warn">Sem internet ou clima indisponível.</p>';$('res').innerHTML='<p class="warn">Sem dados de clima agora.</p>';return}
+ const c=j.current,d=j.daily,[ic,tx]=WC(c.weather_code),h=new Date().getHours(),T=Math.round(c.temperature_2m);
+ const mx=Math.round(d.temperature_2m_max[0]),mn=Math.round(d.temperature_2m_min[0]),uv=d.uv_index_max[0],P=j.hourly.precipitation_probability;
+ SUN={sr:d.sunrise[0].slice(11,16),ss:d.sunset[0].slice(11,16)};
+ const hrs=[0,2,4,6,8,10].map(k=>h+k).filter(k=>k<24);
+ $('wx').innerHTML=`<div class="row"><div><div class="big">${T}°</div><div>${ic} ${tx} · sensação ${Math.round(c.apparent_temperature)}°</div><div class="sub" style="margin:4px 0 0">${pos.n}</div></div><div style="text-align:right">⬆ ${mx}° ⬇ ${mn}°<br>💧 ${c.relative_humidity_2m}%<br>💨 ${Math.round(c.wind_speed_10m)} km/h</div></div><div class="grid" style="margin-top:12px">${hrs.map(k=>`<div class="mini">${k}h<b>${Math.round(j.hourly.temperature_2m[k])}°</b>☔${P[k]}%</div>`).join('')}</div>`;
+ // resumo: o que importa ao acordar
+ const R=[];let wet=[];for(let k=h;k<24;k++)if(P[k]>=50)wet.push(k);
+ if(wet.length)R.push(`☔ <b>Vai chover</b> entre ${wet[0]}h e ${wet[wet.length-1]+1}h (até ${Math.max(...wet.map(k=>P[k]))}%). Leve guarda-chuva.`);
+ else if(d.precipitation_probability_max[0]>=30)R.push(`🌦️ Chance baixa de chuva (${d.precipitation_probability_max[0]}%).`);
+ else R.push('☀️ Sem previsão de chuva hoje.');
+ R.push(`🌡️ Agora ${T}°, hoje de ${mn}° a ${mx}°.`);
+ if(T<=16||mn<=15)R.push('🧥 Frio: leve casaco.');
+ if(mx>=32)R.push(`🥵 Calor forte (${mx}°): leve água.`);
+ if(c.relative_humidity_2m<30)R.push(`🏜️ Ar seco (${c.relative_humidity_2m}%): beba água e hidrate.`);
+ if(uv>=6)R.push(`🧴 UV ${Math.round(uv)}: protetor solar.`);
+ if(c.wind_speed_10m>=30)R.push('💨 Vento forte hoje.');
+ $('res').innerHTML=R.map((r,i)=>`<div class="res ${i==0&&!wet.length?'ok':''}">${r}</div>`).join('')+'<p class="warn" style="margin:6px 0 0">'+`🌅 ${SUN.sr} · 🌇 ${SUN.ss}</p>`;
+}
+$('cb').onclick=async()=>{const q=$('city').value.trim();if(!q)return;const j=await getJ(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=pt&format=json`);
+ if(j&&j.results&&j.results[0]){const r=j.results[0];pos={lat:r.latitude,lon:r.longitude,n:r.name+(r.admin1?' - '+r.admin1:'')};sv('pos',pos);$('city').value='';weather()}else alert('Cidade não encontrada.')};
+
+// notícias (RSS do g1)
+async function news(el,u){
+ const t=await get(u);let it=[];
+ try{it=[...new DOMParser().parseFromString(t,'text/xml').querySelectorAll('item')].slice(0,5).map(i=>({t:i.querySelector('title').textContent,l:i.querySelector('link').textContent}))}catch(e){}
+ const box=$(el);box.innerHTML=it.length?'':'<p class="warn">Sem notícias agora.</p>';
+ it.forEach(x=>{const a=document.createElement('a');a.textContent=x.t;a.onclick=()=>openU(x.l);box.appendChild(a)});
+}
+// mercado
+async function market(){
+ const r=await getJ('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL');
+ const f=(k,n,d)=>r&&r[k]?`<div class="mini">${n}<b>R$ ${(+r[k].bid).toLocaleString('pt-BR',{maximumFractionDigits:d})}</b></div>`:'';
+ $('mk').innerHTML=`<div class="grid">${f('USDBRL','Dólar',2)}${f('EURBRL','Euro',2)}${f('BTCBRL','Bitcoin',0)}</div>`;
+}
+// checklist (reseta marcações todo dia)
+const today=new Date().toDateString();if(cl.d!==today){cl={d:today,i:cl.i.map(x=>({...x,k:false}))};sv('cl',cl)}
+function drawC(){$('cl').innerHTML=cl.i.map((x,n)=>`<div class="chk ${x.k?'d':''}"><input type="checkbox" data-k="${n}" ${x.k?'checked':''}><span style="flex:1">${x.t}</span><button data-r="${n}" style="padding:4px 8px">✕</button></div>`).join('')||'<p class="warn">Adicione o que não pode esquecer. As marcações resetam todo dia.</p>'}
+$('cl').onclick=e=>{const k=e.target.dataset.k,r=e.target.dataset.r;if(k!=null)cl.i[k].k=!cl.i[k].k;if(r!=null)cl.i.splice(r,1);sv('cl',cl);drawC()};
+$('ca').onclick=()=>{const t=$('ci').value.trim();if(!t)return;cl.i.push({t,k:false});$('ci').value='';sv('cl',cl);drawC()};
+
+function head(){const d=new Date(),h=d.getHours();$('hi').textContent=h<12?'Bom dia ☀️':h<18?'Boa tarde 🌤️':'Boa noite 🌙';$('dt').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}
+function refresh(){head();weather();news('n1','https://g1.globo.com/rss/g1/');news('n2','https://g1.globo.com/rss/g1/economia/');news('n3','https://g1.globo.com/rss/g1/distrito-federal/');market()}
+window.refresh=refresh;
+drawA();drawC();sync();refresh();
+</script></body></html>
